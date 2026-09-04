@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dsh
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: dsh
+    kubesphere.io/workload: dsh
+spec:
+  # hostPath-backed appData is node-local: replace the old pod instead of rolling
+  strategy:
+    type: Recreate
+  replicas: {{ .Values.workloads.dsh.replicaCount }}
+  selector:
+    matchLabels:
+      app: dsh
+  template:
+    metadata:
+      labels:
+        app: dsh
+        kubesphere.io/workloadGeneration: "{{ .Chart.Version }}"
+      annotations:
+        kubesphere.io/restartedAt: "0"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      initContainers:
+      # Non-recursive chown of the appData mount root so uid 1000 can write HOME/.dsh
+      - name: init-permissions
+        image: beclab/aboveos-busybox:1.37.0
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /home/dsh && chown 1000:1000 /home/dsh
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: app-data
+          mountPath: /home/dsh
+      containers:
+      - name: dsh
+        image: smanx/deepseek-harness:0.1.2-rc.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3080
+          protocol: TCP
+        env:
+        # dsh persists its state under $HOME/.dsh; point HOME at the appData mount
+        - name: HOME
+          value: /home/dsh
+        # Optional Basic Auth on the built-in proxy (enabled only when both are set)
+        - name: PROXY_USERNAME
+          value: {{ .Values.olaresEnv.PROXY_USERNAME | default "" | quote }}
+        - name: PROXY_PASSWORD
+          value: {{ .Values.olaresEnv.PROXY_PASSWORD | default "" | quote }}
+        volumeMounts:
+        - name: app-data
+          mountPath: /home/dsh
+      # HTTP/WebSocket reverse proxy to the image's own proxy (127.0.0.1:3080).
+      # Strips Accept-Encoding so the bundled proxy receives identity-encoded
+      # responses and can rewrite the served JS: its content-encoding guard
+      # skips compressed responses, which kept the web UI's Settings pages
+      # (provider directory, model routing) unavailable over the Olares domain.
+      - name: ui-shim
+        image: nginx:1.29-alpine
+        command:
+        - nginx
+        - -c
+        - /etc/nginx/shim/nginx.conf
+        - -g
+        - daemon off;
+        ports:
+        - name: ui-shim
+          containerPort: 3090
+          protocol: TCP
+        volumeMounts:
+        - name: shim-conf
+          mountPath: /etc/nginx/shim
+      volumes:
+      - name: app-data
+        hostPath:
+          path: {{ .Values.userspace.appData }}
+          type: DirectoryOrCreate
+      - name: shim-conf
+        configMap:
+          name: dsh-shim-conf
