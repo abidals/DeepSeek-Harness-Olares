@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dsh-svc
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: dsh
+spec:
+  type: ClusterIP
+  selector:
+    app: dsh
+  ports:
+  - name: http
+    port: 3080
+    targetPort: ui-shim
+    protocol: TCP
