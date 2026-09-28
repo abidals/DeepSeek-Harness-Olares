@@ -158,12 +158,17 @@ domain without it — that was the #1 "app is broken" symptom historically.
    commit the chart + assets, tag `v<chart-version>`, attach `dsh-<chart-version>.tgz` to the release.
    Icon/promo images are served from `raw.githubusercontent.com` — URLs baked into the manifest.
 2. **Public Market (beclab/apps)** — `ADD`/`UPDATE` PR from a fork of https://github.com/beclab/apps:
-   - add the `dsh/` folder (not the tgz) at the fork root, plus the `owners` file
+   - the `dsh/` folder (not the tgz) + `owners` file go at the fork root, folder name stays `dsh`
    - PR title `[NEW][dsh][<chart-version>] Add DeepSeek Harness` (or `UPDATE`)
-   - category values must be Market-valid (`AI`)
+   - category values must be Market-valid (`AI`); no `.suspend`/`.remove` files in the OAC root
    - start as Draft, click Ready for review once GitBot is quiet
-   - after merge the app indexes into `market.olares` briefly later; users install sync-per-device
-     through their own Olares/LarePass.
+   - after merge the app indexes into `market.olares` shortly; each user installs their own
+     private (`authLevel: private`) instance, synced per device via their own LarePass login
+   - NOTE (2026-09-28): the current `abidals` fine-grained PAT is repo-scoped and **cannot
+     fork or create repositories**, so the first fork step is manual: fork beclab/apps in the
+     browser (as abidals), add a branch, copy this repo's `dsh/` folder in, push, then open the
+     draft PR to `beclab/apps:main`. To automate next time, issue a PAT with repository
+     administration (create/fork) permission.
 3. **Uninstall data safety:** userspace Data volume is only deleted with
    `market uninstall --delete-data`; plain uninstall keeps `$HOME/.dsh` state.
 
