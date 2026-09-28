@@ -1,16 +1,20 @@
 # DeepSeek Harness — Olares App
 
-Unofficial [Olares](https://olares.com) app package for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`), the open-source agent harness by [DeepSeek AI](https://deepseek.com) — *everything is a plugin*. The Web UI gives you sessions, workspaces and model routing in the browser.
+Unofficial [Olares](https://olares.com) app package for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`), the open-source agent harness by [DeepSeek AI](https://deepseek.com) — *everything is a plugin*. The Web UI gives you sessions, workspaces, plugin management and model routing in the browser.
 
-Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness) (MIT, developer preview) — community container image `smanx/deepseek-harness` (multi-arch), version **0.1.2-rc.1**.
+Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness) (MIT, developer preview) — community container image `smanx/deepseek-harness` (multi-arch: amd64 + arm64), version **0.1.7-rc.2**.
+
+> Future maintainers: read [PLAN-DeepSeek-Harness.md](PLAN-DeepSeek-Harness.md) first — it is the context + runbook for every update/upgrade of this packaging repo.
 
 ## What you get
 
 - Single-container web app served behind your Olares entrance at `https://<app>.<your-domain>`
-- All agent state (credentials, settings, sessions) persisted on the Olares userspace Data volume → survives upgrades
+- Works on **amd64 and arm64** Olares nodes
+- All agent state (credentials, settings, sessions, workspaces) persisted on the Olares userspace Data volume → survives upgrades
 - The bundled community proxy handles the upstream launch-token handshake automatically; no browser dance needed
-- Optional **HTTP Basic Auth** in front of the Web UI: set `PROXY_USERNAME` / `PROXY_PASSWORD` in Settings → Applications → Manage environment variables (Olares entrance auth stays on top of it)
+- Optional **HTTP Basic Auth** in front of the Web UI: set `PROXY_USERNAME` / `PROXY_PASSWORD` in Settings → Applications → Manage environment variables (values are stored as a Kubernetes Secret; Olares entrance auth stays on top of it, and changes apply with an automatic restart)
 - A small **compatibility sidecar** (`nginx`): it normalizes response compression so the bundled proxy's browser patches apply over the Olares domain — this is what keeps **Settings → Models** fully usable (without it, the upstream client treats any non-`localhost` origin as a remote browser and disables its settings surface)
+- Hardened runtime: runs as uid 1000 (unprivileged), capabilities dropped, seccomp `RuntimeDefault`, no privilege escalation, wrapped in the per-app namespace under Olares entrance auth (`authLevel: private`)
 
 ## Prerequisites
 
@@ -20,13 +24,13 @@ Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/de
   npm install -g @olares/cli@latest
   olares-cli profile login --olares-id you@example.com
   ```
-- A [DeepSeek API key](https://platform.deepseek.com/) (or any OpenAI-compatible endpoint for custom providers)
+- A [DeepSeek API key](https://platform.deepseek.com/) (or any OpenAI/Anthropic-compatible endpoint for custom providers)
 
 ## Install
 
 1. **Get the chart package** — download `dsh-<version>.tgz` from this repo's [Releases](https://github.com/abidals/DeepSeek-Harness-Olares/releases/latest) (or clone and build it yourself):
    ```sh
-   olares-cli market upload ./dsh-0.1.3.tgz
+   olares-cli market upload ./dsh-0.2.0.tgz
    # building from source instead:
    git clone https://github.com/abidals/DeepSeek-Harness-Olares && cd DeepSeek-Harness-Olares
    olares-cli chart package ./dsh -o .
@@ -34,12 +38,14 @@ Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/de
 
 2. **Install**:
    ```sh
-   olares-cli market install dsh -s upload --version 0.1.3 --watch
+   olares-cli market install dsh -s upload --version 0.2.0 --watch
    ```
 
 3. **Open the app** from your Olares desktop, then hard-refresh once (`Ctrl+Shift+R`) so the browser fetches the freshly served JS bundle.
 
-4. **Configure a model** — open **Settings → Models**, enter your DeepSeek API key and save; the model route becomes usable immediately without a restart. **Add provider** covers built-ins (`anthropic`, `openai`, `moonshotai`, ...), and **Add a custom provider** takes any OpenAI-compatible gateway (`openai-completions`, `openai-responses` or `anthropic-messages`) with model discovery.
+4. **Configure a model** — open **Settings → Models**, enter your DeepSeek API key and save; the model route becomes usable immediately without a restart. **Add a custom provider** takes any OpenAI-compatible gateway (`openai-completions`, `openai-responses` or `anthropic-messages`) with model discovery.
+
+5. **Use local Olares models (optional)** — point a custom provider at any model app installed on your Olares (e.g. an Ollama engine base) via its in-cluster service URL (`<service>.<shared-app-name>:<port>`), and route to it like any other provider.
 
 ## Updating the app
 
@@ -64,9 +70,16 @@ Your keys, settings and sessions survive upgrades (the env values and the app-da
 ## Repo layout
 
 ```
-dsh/                 # the Olares Helm-style chart (OlaresManifest.yaml + templates/)
-dsh-0.1.3.tgz        # pre-built chart package (what `market upload` consumes)
+dsh/                          # the Olares Helm-style chart (OlaresManifest.yaml + templates/ + i18n/)
+assets/icon/                  # 256x256 app icon + upstream source asset
+assets/listing/               # 1440x900 Market featured/promote images
+dsh-0.2.0.tgz                 # pre-built chart package (what `market upload` consumes)
+PLAN-DeepSeek-Harness.md      # context + runbook for future updates
 ```
+
+## Public Market
+
+This app is submitted to the public Olares Market (`beclab/apps`): category **AI**, submitter **abidals**, platforms **amd64 + arm64**. After the PR merges into https://github.com/beclab/apps it appears in every Olares Market — each user installs their own private instance (`authLevel: private` entrance), with per-device sync via their own LarePass account.
 
 ## Notes
 

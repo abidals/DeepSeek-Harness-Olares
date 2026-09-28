@@ -25,6 +25,9 @@ spec:
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
+      # the in-pod proxy target is a fixed loopback address; drop the legacy
+      # per-Service env injection that could collide with app config vars
+      enableServiceLinks: false
       initContainers:
       # Non-recursive chown of the appData mount root so uid 1000 can write HOME/.dsh
       - name: init-permissions
@@ -41,8 +44,15 @@ spec:
           mountPath: /home/dsh
       containers:
       - name: dsh
-        image: smanx/deepseek-harness:0.1.2-rc.1
+        image: smanx/deepseek-harness:0.1.7-rc.2
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         ports:
         - name: http
           containerPort: 3080
@@ -51,11 +61,25 @@ spec:
         # dsh persists its state under $HOME/.dsh; point HOME at the appData mount
         - name: HOME
           value: /home/dsh
-        # Optional Basic Auth on the built-in proxy (enabled only when both are set)
+        # Optional Basic Auth on the built-in proxy (enabled only when both are set);
+        # travels through a Secret, never a literal env value
         - name: PROXY_USERNAME
-          value: {{ .Values.olaresEnv.PROXY_USERNAME | default "" | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: dsh-proxy-auth
+              key: PROXY_USERNAME
         - name: PROXY_PASSWORD
-          value: {{ .Values.olaresEnv.PROXY_PASSWORD | default "" | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: dsh-proxy-auth
+              key: PROXY_PASSWORD
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1024Mi"
+          limits:
+            cpu: "4"
+            memory: "4096Mi"
         volumeMounts:
         - name: app-data
           mountPath: /home/dsh
@@ -66,16 +90,31 @@ spec:
       # (provider directory, model routing) unavailable over the Olares domain.
       - name: ui-shim
         image: nginx:1.29-alpine
+        imagePullPolicy: IfNotPresent
         command:
         - nginx
         - -c
         - /etc/nginx/shim/nginx.conf
         - -g
         - daemon off;
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         ports:
         - name: ui-shim
           containerPort: 3090
           protocol: TCP
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
         volumeMounts:
         - name: shim-conf
           mountPath: /etc/nginx/shim

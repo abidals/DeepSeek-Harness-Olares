@@ -1,50 +1,7 @@
-"olaresManifest.version": '0.12.0'
-"olaresManifest.type": app
-apiVersion: v3
 metadata:
-  name: dsh
-  appid: dsh
   title: DeepSeek Harness
   description: Open-source agent harness by DeepSeek AI - everything is a plugin.
-  icon: https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/icon/dsh-256.png
-  version: 0.2.0
-  categories:
-  - AI
-entrances:
-- name: dsh
-  host: dsh-svc
-  port: 3080
-  title: DeepSeek Harness
-  icon: https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/icon/dsh-256.png
-  authLevel: private
-  invisible: false
 spec:
-  versionName: "0.1.7-rc.2"
-  featuredImage: https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/listing/1.png
-  promoteImage:
-  - https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/listing/1.png
-  - https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/listing/2.png
-  - https://raw.githubusercontent.com/abidals/DeepSeek-Harness-Olares/main/assets/listing/3.png
-  supportArch:
-  - amd64
-  - arm64
-  runAsUser: true
-  requiredCpu: '0.5'
-  limitedCpu: '4'
-  requiredMemory: 1024Mi
-  limitedMemory: 4096Mi
-  requiredDisk: 2Gi
-  developer: DeepSeek AI
-  website: https://deepseek.com/harness
-  sourceCode: https://github.com/deepseek-ai/deepseek-harness
-  doc: https://deepseek-harness.github.io/deepseek-harness/
-  license:
-  - text: MIT
-    url: https://github.com/deepseek-ai/deepseek-harness/blob/master/LICENSE
-  locale:
-  - en-US
-  - zh-CN
-  submitter: abidals
   fullDescription: |
     **Overview**
 
@@ -82,26 +39,3 @@ spec:
     - The chart serves the Web UI through the Olares entrance with a small
       reverse-proxy sidecar that normalizes response compression, keeping
       the Settings pages fully usable over the Olares domain.
-permission:
-  appData: true
-envs:
-- envName: PROXY_USERNAME
-  required: false
-  type: string
-  editable: true
-  applyOnChange: true
-  description: Optional HTTP Basic Auth username for the Web UI (leave empty to disable; Olares entrance auth still applies)
-- envName: PROXY_PASSWORD
-  required: false
-  type: password
-  editable: true
-  applyOnChange: true
-  description: Optional HTTP Basic Auth password (auth is enabled only when both username and password are set)
-options:
-  apiTimeout: 0
-  dependencies:
-  - name: olares
-    version: '>=1.12.6-0'
-    type: system
-workloadReplicas:
-  dsh: 1
