@@ -2,5 +2,5 @@ apiVersion: v2
 name: dsh
 description: DeepSeek Harness (dsh) - open-source agent harness by DeepSeek AI, community container image by smanx
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "0.1.7-rc.2"

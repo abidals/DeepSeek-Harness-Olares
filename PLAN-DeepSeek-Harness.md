@@ -105,6 +105,13 @@ domain without it — that was the #1 "app is broken" symptom historically.
   values.yaml commits, or the repo. The chart must carry no ambient credential
   (provider/API keys belong to the user's DSH config in `$HOME/.dsh`.
 - **`enableServiceLinks: false`** — avoid legacy service-link env collisions.
+- **`/app` pre-warm copy (emptyDir `app-dir`)** — upstream 0.1.6+ entrypoint hardcodes
+  `/app/.dsh-web.log` (the bundled proxy's launch-token fisher reads it) and `/app` is
+  root-owned in the image while the container must run as uid 1000. The `prep-app`
+  init container (same image, uid 1000, no root) copies `/app/.` into the emptyDir and
+  the main container shades `/app` with it. Keep `image` in `prep-app` in sync with the
+  main container tag on every upgrade. CrashLoopBackOff with
+  `cannot create /app/.dsh-web.log: Permission denied` means this wiring broke.
 - **`workloadReplicas.dsh: 1`** wired to `{{ .Values.workloads.dsh.replicaCount }}` — required
   for two-phase install, suspend/resume to work.
 - **Entrance stays `authLevel: private`** — the harness executes agent plugins; it must remain
@@ -140,6 +147,7 @@ domain without it — that was the #1 "app is broken" symptom historically.
 | WS stuck "connecting" on LAN/remote origin | `crypto.randomUUID` unavailable in non-secure contexts | community proxy injects the polyfill — keep the proxy in the chain |
 | Permission denied writing state | uid mismatch: appData owned 1000:1000, process not 1000 | keep `spec.runAsUser: true` + init chown |
 | Pod CrashLoop with `exec format error` | image tag lacks the node arch | image is multi-arch; if a variant is used (`devtools-*`), verify that tag's arches |
+| CrashLoopBackOff `cannot create /app/.dsh-web.log: Permission denied` | entrypoint writes into root-owned `/app`; uid 1000 cannot | keep the `prep-app` emptyDir pre-warm wiring (see §5) |
 | Install stuck at download | registry unreachable / bad image tag | `market status` then doctor; never "retry" with only a version bump if bytes didn't change |
 | Long requests cut at 504 | entrance proxy timeout | keep `apiTimeout: 0` |
 | 422 `appenv` at install | env validation | check `envs[]` contract — both PROXY_* are optional (`required: false`) |

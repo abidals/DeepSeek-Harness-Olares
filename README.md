@@ -30,7 +30,7 @@ Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/de
 
 1. **Get the chart package** — download `dsh-<version>.tgz` from this repo's [Releases](https://github.com/abidals/DeepSeek-Harness-Olares/releases/latest) (or clone and build it yourself):
    ```sh
-   olares-cli market upload ./dsh-0.2.0.tgz
+   olares-cli market upload ./dsh-0.2.1.tgz
    # building from source instead:
    git clone https://github.com/abidals/DeepSeek-Harness-Olares && cd DeepSeek-Harness-Olares
    olares-cli chart package ./dsh -o .
@@ -38,7 +38,7 @@ Upstream app: [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/de
 
 2. **Install**:
    ```sh
-   olares-cli market install dsh -s upload --version 0.2.0 --watch
+   olares-cli market install dsh -s upload --version 0.2.1 --watch
    ```
 
 3. **Open the app** from your Olares desktop, then hard-refresh once (`Ctrl+Shift+R`) so the browser fetches the freshly served JS bundle.
@@ -73,7 +73,7 @@ Your keys, settings and sessions survive upgrades (the env values and the app-da
 dsh/                          # the Olares Helm-style chart (OlaresManifest.yaml + templates/ + i18n/)
 assets/icon/                  # 256x256 app icon + upstream source asset
 assets/listing/               # 1440x900 Market featured/promote images
-dsh-0.2.0.tgz                 # pre-built chart package (what `market upload` consumes)
+dsh-0.2.1.tgz                 # pre-built chart package (what `market upload` consumes)
 PLAN-DeepSeek-Harness.md      # context + runbook for future updates
 ```
 

@@ -42,6 +42,30 @@ spec:
         volumeMounts:
         - name: app-data
           mountPath: /home/dsh
+      # The upstream entrypoint hardcodes /app/.dsh-web.log (the bundled proxy's
+      # launch-token fisher reads it), but /app is root-owned in the image and
+      # the container runs as uid 1000. Pre-warm a writable copy of /app into an
+      # emptyDir via a uid-1000 init container (no root involvement), then shade
+      # the container's /app with it.
+      - name: prep-app
+        image: smanx/deepseek-harness:0.1.7-rc.2
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - cp -r /app/. /dshapp/
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: app-dir
+          mountPath: /dshapp
       containers:
       - name: dsh
         image: smanx/deepseek-harness:0.1.7-rc.2
@@ -83,6 +107,8 @@ spec:
         volumeMounts:
         - name: app-data
           mountPath: /home/dsh
+        - name: app-dir
+          mountPath: /app
       # HTTP/WebSocket reverse proxy to the image's own proxy (127.0.0.1:3080).
       # Strips Accept-Encoding so the bundled proxy receives identity-encoded
       # responses and can rewrite the served JS: its content-encoding guard
@@ -123,6 +149,9 @@ spec:
         hostPath:
           path: {{ .Values.userspace.appData }}
           type: DirectoryOrCreate
+      - name: app-dir
+        emptyDir:
+          sizeLimit: 2Gi
       - name: shim-conf
         configMap:
           name: dsh-shim-conf
